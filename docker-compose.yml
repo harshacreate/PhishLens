@@ -1,0 +1,10 @@
+services:
+  phishlens:
+    build: .
+    image: phishlens:local
+    container_name: phishlens
+    ports: ["127.0.0.1:8102:8000"]
+    tmpfs: ["/tmp:size=16m"]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    restart: unless-stopped

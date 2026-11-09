@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PhishLens</title>
+<style>
+  :root{
+    --bg:#0b0d1a; --bg2:#10132a; --panel:#151a35; --panel2:#1c2347; --line:#2a3360;
+    --ink:#e9ecfb; --muted:#9aa3cc; --ind:#7c83ff; --ind2:#5b63f0; --cyan:#35e0f0;
+    --hi:#ff5d7a; --med:#ffb020; --lo:#8a93c7; --ok:#36e0a0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);
+    background:radial-gradient(1000px 520px at 15% -10%,rgba(124,131,255,.18),transparent 55%),
+               radial-gradient(800px 480px at 95% 0,rgba(53,224,240,.12),transparent 55%),var(--bg)}
+  .top{display:flex;align-items:center;gap:14px;padding:18px 26px;border-bottom:1px solid var(--line);position:sticky;top:0;backdrop-filter:blur(10px);background:rgba(11,13,26,.6);z-index:9}
+  .logo{width:44px;height:44px;filter:drop-shadow(0 4px 14px rgba(124,131,255,.5))}
+  .brand h1{margin:0;font-size:20px;letter-spacing:-.01em} .brand p{margin:1px 0 0;color:var(--muted);font-size:12.5px}
+  .tstat{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+  .tool{font-size:11.5px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted)}
+  .tool.on{color:var(--ind);border-color:rgba(124,131,255,.4)}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 16px 70px}
+  .hero{text-align:center;margin-bottom:22px}
+  .hero h2{font-size:30px;margin:0 0 6px;letter-spacing:-.02em;background:linear-gradient(100deg,#b9bdff,#35e0f0);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{color:var(--muted);margin:0;max-width:600px;margin-inline:auto}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 16px 46px rgba(0,0,0,.35)}
+  textarea{width:100%;min-height:84px;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:12px;font:inherit;font-family:ui-monospace,Menlo,monospace;font-size:13.5px}
+  button{background:linear-gradient(180deg,var(--ind),var(--ind2));border:0;color:#fff;border-radius:12px;padding:12px 18px;font:inherit;font-weight:700;cursor:pointer}
+  button.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--ink);font-weight:500}
+  .ex{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .ex button{padding:6px 11px;font-size:12px;font-weight:500;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+  .ex .ph{color:#ffb9c6;border-color:rgba(255,93,122,.35)} .ex .sf{color:#9ff0cf;border-color:rgba(54,224,160,.3)}
+  .result{display:grid;grid-template-columns:230px 1fr;gap:20px}
+  @media(max-width:760px){.result{grid-template-columns:1fr}}
+  .gauge{position:relative;width:200px;height:200px;margin:0 auto}
+  .gauge svg{transform:rotate(-90deg)} .gauge .lab{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+  .gauge .lab .n{font-size:38px;font-weight:800;letter-spacing:-.02em} .gauge .lab .v{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  .verdict{text-align:center;font-weight:800;font-size:18px;margin-top:12px;padding:7px;border-radius:12px}
+  .v-Phishing{background:rgba(255,93,122,.16);color:var(--hi)} .v-Suspicious{background:rgba(255,176,32,.16);color:var(--med)} .v-Likely{background:rgba(54,224,160,.16);color:var(--ok)}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:4px 0 10px}
+  .sig{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .sev{width:9px;height:9px;border-radius:50%;flex:none} .s-high{background:var(--hi)} .s-medium{background:var(--med)} .s-low{background:var(--lo)}
+  table{width:100%;border-collapse:collapse;font-size:13px} th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)} th{color:var(--muted)}
+  .bar{height:7px;border-radius:7px;background:var(--panel2);overflow:hidden} .bar span{display:block;height:100%}
+  .up{background:var(--hi)} .down{background:var(--ok)}
+  .mono{font-family:ui-monospace,Menlo,monospace} .muted{color:var(--muted)}
+  .toggle{display:flex;align-items:center;gap:10px;margin-top:4px}
+  .pill{font-size:11.5px;border:1px solid var(--line);border-radius:999px;padding:4px 11px;color:var(--muted)}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .kv{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)} .kv .k{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="top">
+  <svg class="logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9aa0ff"/><stop offset="1" stop-color="#35e0f0"/></linearGradient></defs>
+    <circle cx="21" cy="21" r="13" stroke="url(#g)" stroke-width="3" fill="rgba(124,131,255,.12)"/>
+    <circle cx="21" cy="21" r="6" stroke="url(#g)" stroke-width="2" fill="none"/>
+    <path d="M21 13v16M13 21h16" stroke="url(#g)" stroke-width="1.4" opacity=".6"/>
+    <path d="M31 31l9 9" stroke="url(#g)" stroke-width="3.4" stroke-linecap="round"/>
+  </svg>
+  <div class="brand"><h1>PhishLens</h1><p>Phishing URL &amp; email analyzer</p></div>
+  <div class="tstat" id="tools"></div>
+</div>
+
+<div class="wrap">
+  <div class="hero"><h2>Is this link safe?</h2><p>Paste a URL or a whole email. PhishLens extracts the signals, scores the risk with an explainable model, and can run live domain lookups on request.</p></div>
+
+  <div class="card">
+    <textarea id="input" placeholder="https://netflix.com@account-update.xyz/billing   — or paste an email body"></textarea>
+    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+      <button id="go" onclick="analyze()">Analyze</button>
+      <span class="ex" id="ex"></span>
+    </div>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const api=(u,o)=>fetch(u,o).then(r=>r.json());
+api('/api/tools').then(t=>$('tools').innerHTML=Object.entries(t).map(([k,v])=>`<span class="tool ${v?'on':''}">${k} ${v?'●':'○'}</span>`).join(''));
+api('/api/examples').then(e=>{$('ex').innerHTML=
+  e.safe.map(u=>`<button class="sf" onclick="setu('${u}')">safe: ${u.replace('https://','').slice(0,22)}</button>`).join('')+
+  e.phishing.map(u=>`<button class="ph" onclick="setu('${u.replace(/'/g,"")}')">phish: ${u.replace(/^https?:\/\//,'').slice(0,22)}</button>`).join('');});
+function setu(u){$('input').value=u;analyze();}
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+const RING=2*Math.PI*86;
+async function analyze(){
+  const b=$('go'); b.innerHTML='<span class="spin"></span> Analyzing…'; b.disabled=true;
+  const r=await api('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:$('input').value})});
+  b.innerHTML='Analyze'; b.disabled=false;
+  if(r.error){$('out').innerHTML=`<div class="card" style="color:var(--hi)">${r.error}</div>`;return;}
+  const col=r.risk>=70?'#ff5d7a':r.risk>=40?'#ffb020':'#36e0a0';
+  const vk=r.verdict.split(' ')[0];
+  const sig=r.signals.map(s=>`<div class="sig"><span class="sev s-${s.severity}"></span><span>${esc(s.text)}</span></div>`).join('')||'<div class="muted">no strong signals</div>';
+  const em=(r.email_signals||[]).map(s=>`<div class="sig"><span class="sev s-medium"></span><span>${esc(s)}</span></div>`).join('');
+  const dr=r.drivers.map(d=>{const w=Math.min(100,Math.abs(d.contribution)*40);
+    return `<tr><td class="mono">${d.feature}</td><td>${d.value}</td><td><div class="bar"><span class="${d.direction==='raises'?'up':'down'}" style="width:${w}%"></span></div></td><td class="muted">${d.direction} risk</td></tr>`;}).join('');
+  $('out').innerHTML=`<div class="card"><div class="result">
+    <div>
+      <div class="gauge"><svg width="200" height="200">
+        <circle cx="100" cy="100" r="86" stroke="#1c2347" stroke-width="16" fill="none"/>
+        <circle cx="100" cy="100" r="86" stroke="${col}" stroke-width="16" fill="none" stroke-linecap="round" stroke-dasharray="${RING}" stroke-dashoffset="${RING*(1-r.risk/100)}"/>
+      </svg><div class="lab"><div><div class="n" style="color:${col}">${r.risk}</div><div class="v">risk score</div></div></div></div>
+      <div class="verdict v-${vk}">${r.verdict}</div>
+      <div class="muted mono" style="text-align:center;margin-top:8px;font-size:12px">${esc(r.host)}</div>
+    </div>
+    <div>
+      <h4>Why — detected signals</h4>${sig}${em?('<h4 style="margin-top:14px">Email signals</h4>'+em):''}
+      <h4 style="margin-top:16px">Model explanation (top features driving the score)</h4>
+      <table><tr><th>feature</th><th>value</th><th>weight</th><th></th></tr>${dr}</table>
+      <div class="toggle" style="margin-top:16px">
+        <button class="ghost" onclick="enrich('${esc(r.registered_domain)}')">Run live domain lookups (whois · DNS · TLS)</button>
+        <span class="pill">opt-in · passive</span>
+      </div>
+      <div id="enrich"></div>
+    </div>
+  </div></div>`;
+}
+async function enrich(domain){
+  $('enrich').innerHTML='<div class="muted" style="margin-top:12px"><span class="spin" style="border-color:#7c83ff;border-top-color:transparent"></span> looking up '+esc(domain)+'…</div>';
+  const r=await api('/api/enrich',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain})});
+  const w=r.whois||{}, d=r.dns||{}, t=r.tls||{};
+  $('enrich').innerHTML=`<div class="card" style="margin-top:12px;background:var(--panel2)">
+    <h4>whois</h4><div class="kv"><span class="k">created</span><span>${w.created||'—'} ${w.age_days!=null?('('+w.age_days+' days'+(w.young_domain?' · ⚠ young':'')+')'):''}</span></div>
+    <div class="kv"><span class="k">registrar</span><span>${esc(w.registrar||'—')}</span></div>
+    <h4 style="margin-top:12px">DNS</h4>
+    <div class="kv"><span class="k">A</span><span class="mono">${(d.a||[]).join(', ')||'—'}</span></div>
+    <div class="kv"><span class="k">SPF</span><span>${d.has_spf?'✓ present':'✗ missing'}</span></div>
+    <div class="kv"><span class="k">DMARC</span><span>${d.has_dmarc?'✓ present':'✗ missing'}</span></div>
+    <h4 style="margin-top:12px">TLS certificate</h4>
+    ${t.reachable?`<div class="kv"><span class="k">issuer</span><span>${esc(t.issuer||'—')}</span></div>
+      <div class="kv"><span class="k">valid to</span><span>${esc(t.valid_to||'—')}</span></div>
+      <div class="kv"><span class="k">TLS</span><span>${esc(t.tls_version||'—')}</span></div>`:'<div class="muted">host not reachable over HTTPS</div>'}
+  </div>`;
+}
+</script>
+</body>
+</html>
