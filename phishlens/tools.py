@@ -82,24 +82,39 @@ def dns_records(domain: str) -> Dict:
 
 
 def tls_cert(host: str, port: int = 443) -> Dict:
+    """Fetch the server certificate even if it is untrusted (binary form + parse),
+    so details populate for suspicious as well as legitimate sites."""
     try:
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
         with socket.create_connection((host, port), timeout=6) as sock:
             with ctx.wrap_socket(sock, server_hostname=host) as ssock:
-                cert = ssock.getpeercert()
+                der = ssock.getpeercert(binary_form=True)
+                version = ssock.version()
                 cipher = ssock.cipher()
     except Exception:
         return {"available": True, "reachable": False}
-    subj = dict(x[0] for x in cert.get("subject", []))
-    issuer = dict(x[0] for x in cert.get("issuer", []))
-    return {
-        "available": True, "reachable": True,
-        "subject_cn": subj.get("commonName"),
-        "issuer": issuer.get("organizationName") or issuer.get("commonName"),
-        "valid_from": cert.get("notBefore"),
-        "valid_to": cert.get("notAfter"),
-        "tls_version": cipher[1] if cipher else None,
-        "cipher": cipher[0] if cipher else None,
-    }
+
+    out = {"available": True, "reachable": True,
+           "tls_version": version, "cipher": cipher[0] if cipher else None}
+    try:
+        from cryptography import x509
+        cert = x509.load_der_x509_certificate(der)
+        def _cn(name):
+            try:
+                return name.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value
+            except Exception:
+                return None
+        def _org(name):
+            try:
+                return name.get_attributes_for_oid(x509.NameOID.ORGANIZATION_NAME)[0].value
+            except Exception:
+                return None
+        out["subject_cn"] = _cn(cert.subject)
+        out["issuer"] = _org(cert.issuer) or _cn(cert.issuer)
+        out["valid_from"] = cert.not_valid_before_utc.strftime("%Y-%m-%d")
+        out["valid_to"] = cert.not_valid_after_utc.strftime("%Y-%m-%d")
+    except Exception:
+        pass
+    return out
