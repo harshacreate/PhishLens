@@ -2,7 +2,6 @@
 
 **Read the signal in a link before a person clicks it.**
 
-![PhishLens analyzer](docs/phishlens-preview.png)
 
 PhishLens parses one URL, a pasted email, or a small batch; surfaces rule signals and feature contributions; then assigns a score using an explainable logistic-regression model trained on generated URL features. It runs offline by default. Optional WHOIS, DNS, and TLS checks require an explicit confirmation that the user owns or is authorized to check the selected public domain.
 
