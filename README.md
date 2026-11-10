@@ -1,8 +1,14 @@
 # PhishLens
 
+![PhishLens demo](demo/phishlens-demo.gif)
+
+The walkthrough scores an inert example URL locally; the app does not open it.
+
 PhishLens checks links and email text for signs of phishing. It explains which signs led to each score. It can also check a list of links at once. It does not open links during a normal check.
 
 Design Project II, Semester IV (2024–25), B.Tech Cyber Security, Hindustan Institute of Technology and Science. Project by Malepati Sree Harsha.
+
+![tests](https://img.shields.io/badge/tests-20%20passing-2ea44f) [![coverage](https://codecov.io/gh/harshacreate/PhishLens/branch/main/graph/badge.svg)](https://codecov.io/gh/harshacreate/PhishLens)
 
 ![PhishLens result](docs/screenshots/02-phishing-verdict.png)
 
@@ -31,6 +37,12 @@ On a small hand-written test, the model alone found 1 of 10 phishing links. Extr
 
 ## Run it
 
+After a version tag has been published to GHCR:
+
+```bash
+docker run --rm -p 127.0.0.1:8102:8000 ghcr.io/harshacreate/phishlens:latest
+```
+
 With Docker:
 
 ```bash
@@ -56,3 +68,4 @@ The training links are made for this project, so the model may miss real phishin
 See [Security notes](SECURITY.md) and the [project report](report/PhishLens_Project_Report.pdf).
 
 The code is under the MIT license.
+
