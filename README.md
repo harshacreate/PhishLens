@@ -1,10 +1,14 @@
 # PhishLens
 
+![PhishLens demo](demo/phishlens-demo.gif)
+
+The walkthrough scores an inert sample URL locally and never opens it; public-data results are reported separately below.
+
 **Explainable hybrid phishing-URL detection, with an honest out-of-template evaluation.**
 
 Design Project II · Semester IV (2024–25) · B.Tech, specialisation in Cyber Security, DISC, Hindustan Institute of Technology and Science, Chennai · by **Malepati Sree Harsha**
 
-![tests](https://img.shields.io/badge/tests-20%20passing-2ea44f) ![python](https://img.shields.io/badge/python-3.12-3776AB) ![docker](https://img.shields.io/badge/docker-compose-2496ED) ![license](https://img.shields.io/badge/license-MIT-blue) ![focus](https://img.shields.io/badge/focus-explainable%20ML-0f8f8a)
+![tests](https://img.shields.io/badge/tests-20%20passing-2ea44f) [![coverage](https://codecov.io/gh/harshacreate/PhishLens/branch/main/graph/badge.svg)](https://codecov.io/gh/harshacreate/PhishLens) ![python](https://img.shields.io/badge/python-3.12-3776AB) ![docker](https://img.shields.io/badge/docker-compose-2496ED) ![license](https://img.shields.io/badge/license-MIT-blue) ![focus](https://img.shields.io/badge/focus-explainable%20ML-0f8f8a)
 
 ![PhishLens verdict](docs/screenshots/02-phishing-verdict.png)
 
@@ -59,6 +63,12 @@ The hand-written probe set (10 phishing, 12 benign) was written before the hybri
 ![Architecture](docs/diagrams/architecture.png)
 
 ## Quick start
+
+Run the published image:
+
+```bash
+docker run --rm -p 127.0.0.1:8102:8000 ghcr.io/harshacreate/phishlens:latest
+```
 
 ```bash
 docker compose up --build -d

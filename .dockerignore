@@ -1,4 +1,7 @@
 .git
+.coverage
+coverage.xml
+data/real-data/
 .pytest_cache
 .venv
 __pycache__
