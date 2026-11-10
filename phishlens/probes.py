@@ -96,15 +96,38 @@ def _confusion(model, probes: List[Probe], key: str) -> Dict:
             tn += 1
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0
+    fpr = fp / (fp + tn) if fp + tn else 0.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
     return {"tp": tp, "fp": fp, "tn": tn, "fn": fn, "precision": round(precision, 3),
-            "recall": round(recall, 3), "f1": round(f1, 3), "errors": misses}
+            "recall": round(recall, 3), "fpr": round(fpr, 3), "f1": round(f1, 3),
+            "precision_ci95": _wilson_interval(tp, tp + fp),
+            "recall_ci95": _wilson_interval(tp, tp + fn),
+            "fpr_ci95": _wilson_interval(fp, fp + tn), "errors": misses}
+
+
+def _wilson_interval(successes: int, trials: int, z: float = 1.959963984540054):
+    """Return a two-sided 95% Wilson score interval, including zero successes."""
+    if trials <= 0:
+        return None
+    proportion = successes / trials
+    z_squared = z * z
+    denominator = 1 + z_squared / trials
+    center = (proportion + z_squared / (2 * trials)) / denominator
+    margin = (
+        z
+        * ((proportion * (1 - proportion) / trials + z_squared / (4 * trials * trials)) ** 0.5)
+        / denominator
+    )
+    return [round(max(0.0, center - margin), 3), round(min(1.0, center + margin), 3)]
 
 
 def evaluate(model=None) -> Dict:
     from phishlens.model import PhishModel
     model = model or PhishModel.train(seed=0)
-    out = {"threshold": "flagged when score >= 40 (Suspicious or Phishing)"}
+    out = {
+        "threshold": "flagged when score >= 40 (Suspicious or Phishing)",
+        "interval_method": "two-sided 95% Wilson score intervals; descriptive for these small probe sets",
+    }
     for name, probes in (("dev", DEV_PROBES), ("holdout", HOLDOUT_PROBES)):
         out[name] = {"n": len(probes),
                      "model_only": _confusion(model, probes, "model_risk"),
