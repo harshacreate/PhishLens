@@ -13,6 +13,23 @@ def test_feature_extraction():
     assert len(vector_list(f)) == len(FEATURE_NAMES)
 
 
+def test_registered_domain_uses_public_suffix_list_and_handles_bad_hosts():
+    uk = extract("https://login.example.co.uk/")
+    assert uk["registered_domain"] == "example.co.uk"
+    assert uk["vector"]["num_subdomains"] == 1
+    assert extract("https://mail.shop.example.com.au/")["registered_domain"] == "example.com.au"
+    assert extract("https://a.b.example.com/")["registered_domain"] == "example.com"
+    assert extract("https://account.blogspot.com/")["registered_domain"] == "account.blogspot.com"
+    assert extract("https://paypal.co.uk/")["signals"] == []
+    assert extract("http://192.0.2.10/login")["registered_domain"] == "192.0.2.10"
+    ipv6 = extract("http://[2001:db8::1]/")
+    assert ipv6["registered_domain"] == "2001:db8::1"
+    assert ipv6["vector"]["has_ip_host"] == 1
+    malformed = extract("http://[2001:db8::1")
+    assert malformed["registered_domain"] == ""
+    assert malformed["vector"]["has_ip_host"] == 0
+
+
 def test_extract_urls_from_email():
     urls = extract_urls("Dear user, verify at http://paypal-verify.tk/login now")
     assert urls and "paypal-verify.tk" in urls[0]
@@ -120,6 +137,16 @@ def test_holdout_probes_hybrid_beats_model_only():
     report = evaluate()["holdout"]
     assert report["hybrid"]["recall"] > report["model_only"]["recall"]
     assert report["hybrid"]["fp"] == 0
+    assert report["hybrid"]["recall_ci95"] is not None
+    assert report["hybrid"]["fpr_ci95"][0] == 0.0
+    assert report["hybrid"]["fpr_ci95"][1] > 0.0
+
+
+def test_wilson_intervals_handle_small_samples_and_zero_false_positives():
+    from phishlens.probes import _wilson_interval
+    assert _wilson_interval(1, 10) == [0.018, 0.404]
+    assert _wilson_interval(0, 12) == [0.0, 0.242]
+    assert _wilson_interval(0, 0) is None
 
 
 def test_tls_check_refuses_names_that_resolve_to_internal_addresses(monkeypatch):
