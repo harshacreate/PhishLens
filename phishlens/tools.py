@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 import ipaddress
 import shutil
+import socket
 import subprocess
 from datetime import datetime, timezone
 from typing import Dict
@@ -100,13 +101,39 @@ def dns_records(domain: str) -> Dict:
     return out
 
 
+def resolve_public(host: str):
+    """Resolve host once and return one public IPv4 address, or None.
+
+    A public-looking *name* can still point at 127.0.0.1, a private range or a
+    cloud metadata address (and DNS rebinding can change the answer between two
+    lookups). Refusing any non-global answer and then connecting to the vetted
+    IP prevents the TLS check from being turned into a request to internal
+    services (SSRF).
+    """
+    try:
+        infos = socket.getaddrinfo(host, None, socket.AF_INET, socket.SOCK_STREAM)
+    except (socket.gaierror, UnicodeError, OSError):
+        return None
+    addresses = {info[4][0] for info in infos}
+    if not addresses:
+        return None
+    for address in addresses:
+        if not ipaddress.ip_address(address).is_global:
+            return None
+    return sorted(addresses)[0]
+
+
 def tls_cert(host: str, port: int = 443) -> Dict:
     """Use OpenSSL's client and x509 commands for a user-opted-in TLS check."""
     if not valid_public_domain(host) or not available("openssl"):
         return {"available": False, "reachable": False}
+    address = resolve_public(host)
+    if address is None:
+        return {"available": True, "reachable": False,
+                "error": "domain did not resolve to a public address; check refused"}
     try:
         session = subprocess.run(
-            ["openssl", "s_client", "-connect", f"{host}:{port}", "-servername", host,
+            ["openssl", "s_client", "-connect", f"{address}:{port}", "-servername", host,
              "-showcerts", "-verify_quiet"],
             input="\n", capture_output=True, text=True, timeout=8,
         )
