@@ -8,16 +8,35 @@ fully offline without them. Each degrades gracefully when the tool is missing.
 from __future__ import annotations
 
 import re
+import ipaddress
 import shutil
-import socket
-import ssl
 import subprocess
 from datetime import datetime, timezone
 from typing import Dict
 
 
-def tool_available(name: str) -> bool:
+def available(name: str) -> bool:
     return shutil.which(name) is not None
+
+
+# Backward-compatible alias used elsewhere in the app.
+tool_available = available
+
+
+def valid_public_domain(domain: str) -> bool:
+    """Accept a public DNS name only; live lookups still require explicit user opt-in."""
+    domain = (domain or "").strip().rstrip(".").lower()
+    if len(domain) > 253 or "." not in domain or not re.fullmatch(r"[a-z0-9.-]+", domain):
+        return False
+    try:
+        ipaddress.ip_address(domain)
+        return False
+    except ValueError:
+        pass
+    labels = domain.split(".")
+    if any(not label or len(label) > 63 or label.startswith("-") or label.endswith("-") for label in labels):
+        return False
+    return labels[-1].isalpha() and len(labels[-1]) >= 2 and domain not in {"localhost.localdomain"}
 
 
 def whois_lookup(domain: str) -> Dict:
@@ -82,39 +101,36 @@ def dns_records(domain: str) -> Dict:
 
 
 def tls_cert(host: str, port: int = 443) -> Dict:
-    """Fetch the server certificate even if it is untrusted (binary form + parse),
-    so details populate for suspicious as well as legitimate sites."""
+    """Use OpenSSL's client and x509 commands for a user-opted-in TLS check."""
+    if not valid_public_domain(host) or not available("openssl"):
+        return {"available": False, "reachable": False}
     try:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        with socket.create_connection((host, port), timeout=6) as sock:
-            with ctx.wrap_socket(sock, server_hostname=host) as ssock:
-                der = ssock.getpeercert(binary_form=True)
-                version = ssock.version()
-                cipher = ssock.cipher()
-    except Exception:
+        session = subprocess.run(
+            ["openssl", "s_client", "-connect", f"{host}:{port}", "-servername", host,
+             "-showcerts", "-verify_quiet"],
+            input="\n", capture_output=True, text=True, timeout=8,
+        )
+    except (subprocess.TimeoutExpired, OSError):
         return {"available": True, "reachable": False}
-
-    out = {"available": True, "reachable": True,
-           "tls_version": version, "cipher": cipher[0] if cipher else None}
+    cert_match = re.search(r"-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----",
+                           session.stdout, flags=re.S)
+    if not cert_match:
+        return {"available": True, "reachable": False}
     try:
-        from cryptography import x509
-        cert = x509.load_der_x509_certificate(der)
-        def _cn(name):
-            try:
-                return name.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value
-            except Exception:
-                return None
-        def _org(name):
-            try:
-                return name.get_attributes_for_oid(x509.NameOID.ORGANIZATION_NAME)[0].value
-            except Exception:
-                return None
-        out["subject_cn"] = _cn(cert.subject)
-        out["issuer"] = _org(cert.issuer) or _cn(cert.issuer)
-        out["valid_from"] = cert.not_valid_before_utc.strftime("%Y-%m-%d")
-        out["valid_to"] = cert.not_valid_after_utc.strftime("%Y-%m-%d")
-    except Exception:
-        pass
-    return out
+        cert = subprocess.run(
+            ["openssl", "x509", "-noout", "-subject", "-issuer", "-dates", "-fingerprint", "-sha256"],
+            input=cert_match.group(0), capture_output=True, text=True, timeout=5,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return {"available": True, "reachable": True, "error": "certificate parsing failed"}
+    lines = dict(line.split("=", 1) for line in cert.stdout.splitlines() if "=" in line)
+    protocol = re.search(r"Protocol\s*:\s*(TLSv[\d.]+)", session.stdout + session.stderr)
+    cipher = re.search(r"Ciphersuite\s*:\s*([^\s]+)", session.stdout + session.stderr)
+    return {
+        "available": True, "reachable": bool(cert.stdout),
+        "subject": lines.get("subject"), "issuer": lines.get("issuer"),
+        "valid_from": lines.get("notBefore"), "valid_to": lines.get("notAfter"),
+        "fingerprint_sha256": lines.get("sha256 Fingerprint"),
+        "tls_version": protocol.group(1) if protocol else None,
+        "cipher": cipher.group(1) if cipher else None,
+    }

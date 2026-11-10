@@ -20,7 +20,7 @@ _WORDS = ["cloud", "shop", "news", "store", "studio", "labs", "market", "hub", "
 
 
 def _benign(rng: random.Random) -> str:
-    base = rng.choice(list(BRANDS) + _WORDS)
+    base = rng.choice(sorted(BRANDS) + _WORDS)
     tld = rng.choice(_GOOD_TLDS)
     host = rng.choice(["www.", "", "shop.", "blog."]) + base + "." + tld
     scheme = "https://" if rng.random() > 0.08 else "http://"     # a few benign on http
@@ -31,24 +31,24 @@ def _benign(rng: random.Random) -> str:
 
 
 def _phish(rng: random.Random) -> str:
-    brand = rng.choice(list(BRANDS))
+    brand = rng.choice(sorted(BRANDS))
     style = rng.randint(0, 6)
     kw = rng.choice(["login", "verify", "account", "secure-update", "confirm", "billing"])
     if style == 0:                                   # brand lookalike on bad TLD
-        return "http://%s-%s.%s/%s" % (brand, kw, rng.choice(list(SUSPICIOUS_TLDS)), kw)
+        return "http://%s-%s.%s/%s" % (brand, kw, rng.choice(sorted(SUSPICIOUS_TLDS)), kw)
     if style == 1:                                   # brand as subdomain of junk
         return "http://%s.com.%s%d.%s/%s" % (brand, rng.choice(_WORDS), rng.randint(1, 99),
-                                             rng.choice(list(SUSPICIOUS_TLDS)), kw)
+                                             rng.choice(sorted(SUSPICIOUS_TLDS)), kw)
     if style == 2:                                   # IP host
         ip = ".".join(str(rng.randint(1, 254)) for _ in range(4))
         return "http://%s/%s/%s" % (ip, "secure", kw)
     if style == 3:                                   # @ redirect trick
-        return "https://%s.com@%s.%s/%s" % (brand, rng.choice(_WORDS), rng.choice(list(SUSPICIOUS_TLDS)), kw)
+        return "https://%s.com@%s.%s/%s" % (brand, rng.choice(_WORDS), rng.choice(sorted(SUSPICIOUS_TLDS)), kw)
     if style == 4:                                   # punycode homograph
-        return "http://xn--%s-9ca.%s/%s" % (brand, rng.choice(list(SUSPICIOUS_TLDS)), kw)
+        return "http://xn--%s-9ca.%s/%s" % (brand, rng.choice(sorted(SUSPICIOUS_TLDS)), kw)
     if style == 5:                                   # long hyphenated keyword host
         return "http://%s-%s-%s-%s.%s/%s" % (brand, "account", "security", "update",
-                                             rng.choice(list(SUSPICIOUS_TLDS)), kw)
+                                             rng.choice(sorted(SUSPICIOUS_TLDS)), kw)
     return "http://bit.ly/%s%d" % (brand, rng.randint(100, 999))   # shortener
 
 

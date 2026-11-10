@@ -14,7 +14,13 @@ HERE = os.path.dirname(__file__)
 STATIC = os.path.join(HERE, "static")
 
 app = Flask(__name__, static_folder=STATIC, static_url_path="/static")
+app.config["MAX_CONTENT_LENGTH"] = 128 * 1024
 MODEL = PhishModel.train(seed=0)     # trained once at startup (synthetic feature data)
+
+
+def _body():
+    value = request.get_json(silent=True)
+    return value if isinstance(value, dict) else None
 
 
 @app.route("/")
@@ -29,32 +35,69 @@ def health():
 
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
-    text = (request.get_json(force=True, silent=True) or {}).get("text", "").strip()
-    if not text:
+    data = _body()
+    if data is None:
+        return jsonify({"error": "expected a JSON object"}), 400
+    text = data.get("text", "")
+    if not isinstance(text, str) or not text.strip():
         return jsonify({"error": "paste a URL or an email body"}), 400
+    if len(text) > 20_000:
+        return jsonify({"error": "input is limited to 20,000 characters"}), 413
     urls = extract_urls(text)
     if not urls:
         return jsonify({"error": "no URL found in the input"}), 400
-    primary = MODEL.score_url(urls[0])
+    primary = _score_email(text, urls[0])
     primary["other_urls"] = urls[1:6]
-    # simple email text signals
-    low = text.lower()
-    primary["email_signals"] = [s for s in [
-        "urgency language ('immediately', 'suspended', 'verify now')" if any(
-            k in low for k in ("immediately", "suspended", "verify now", "within 24", "urgent", "act now")) else None,
-        "asks for credentials / payment info" if any(
-            k in low for k in ("password", "card number", "ssn", "otp", "pin", "cvv")) else None,
-        "generic greeting ('dear customer')" if "dear customer" in low or "dear user" in low else None,
-    ] if s]
     return jsonify(primary)
+
+
+def _score_email(text, url):
+    result = MODEL.score_url(url)
+    low = text.lower()
+    result["email_signals"] = [s for s in [
+        "Urgency language" if any(k in low for k in ("immediately", "suspended", "verify now", "within 24", "urgent", "act now")) else None,
+        "Credential or payment request" if any(k in low for k in ("password", "card number", "ssn", "otp", "pin", "cvv")) else None,
+        "Generic greeting" if "dear customer" in low or "dear user" in low else None,
+    ] if s]
+    return result
+
+
+@app.route("/api/analyze/batch", methods=["POST"])
+def analyze_batch():
+    data = _body()
+    if data is None:
+        return jsonify({"error": "expected a JSON object"}), 400
+    items = data.get("items", [])
+    if not isinstance(items, list) or not items or len(items) > 25:
+        return jsonify({"error": "provide between 1 and 25 URLs"}), 400
+    results = []
+    for item in items:
+        if not isinstance(item, str) or len(item) > 2048:
+            continue
+        urls = extract_urls(item)
+        if urls:
+            results.append(_score_email(item, urls[0]))
+    if not results:
+        return jsonify({"error": "no valid URLs found"}), 400
+    return jsonify({
+        "results": results,
+        "count": len(results),
+        "average_risk": round(sum(x["risk"] for x in results) / len(results), 1),
+        "high_risk": sum(x["risk"] >= 70 for x in results),
+        "synthetic_model": True,
+    })
 
 
 @app.route("/api/enrich", methods=["POST"])
 def enrich():
-    d = request.get_json(force=True, silent=True) or {}
+    d = _body()
+    if d is None:
+        return jsonify({"error": "expected a JSON object"}), 400
     domain = (d.get("domain") or "").strip().lower()
-    if not domain:
-        return jsonify({"error": "domain required"}), 400
+    if not d.get("confirm_own_domain"):
+        return jsonify({"error": "confirm that you own or are authorized to check this domain"}), 400
+    if not tools.valid_public_domain(domain):
+        return jsonify({"error": "enter a valid public DNS name; IPs and local hosts are not accepted"}), 400
     return jsonify({
         "domain": domain,
         "whois": tools.whois_lookup(domain),
@@ -84,13 +127,14 @@ def tool_status():
     import importlib.util
     return jsonify({
         "whois": tools.tool_available("whois"),
+        "dig": tools.tool_available("dig"),
         "dnspython": importlib.util.find_spec("dns") is not None,
-        "tls": True,
+        "openssl": tools.tool_available("openssl"),
     })
 
 
 def main():
-    app.run(host=os.getenv("HOST", "0.0.0.0"), port=int(os.getenv("PORT", "8000")))
+    app.run(host=os.getenv("HOST", "127.0.0.1"), port=int(os.getenv("PORT", "8000")))
 
 
 if __name__ == "__main__":

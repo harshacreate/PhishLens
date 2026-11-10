@@ -66,9 +66,9 @@ def extract(url: str) -> Dict:
     shortener = 1 if reg in SHORTENERS else 0
     redirect = 1 if ("//" in path_q or "url=" in path_q.lower() or "redirect" in path_q.lower()) else 0
     tld_bad = 1 if tld in SUSPICIOUS_TLDS else 0
-    kw_hits = [k for k in KEYWORDS if k in url.lower()]
+    kw_hits = [k for k in sorted(KEYWORDS) if k in url.lower()]
     # Brand lookalike: a known brand appears somewhere but is NOT the registered domain.
-    brand_hits = [b for b in BRANDS if b in host or b in path_q.lower()]
+    brand_hits = [b for b in sorted(BRANDS) if b in host or b in path_q.lower()]
     lookalike = 1 if any(b not in reg for b in brand_hits) and brand_hits else 0
 
     vec = {
