@@ -4,17 +4,19 @@ from __future__ import annotations
 
 import os
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, g, jsonify, request, send_from_directory
 
 from phishlens import tools
 from phishlens.features import extract_urls
 from phishlens.model import PhishModel
+from phishlens.web_security import install, rate_limited
 
 HERE = os.path.dirname(__file__)
 STATIC = os.path.join(HERE, "static")
 
 app = Flask(__name__, static_folder=STATIC, static_url_path="/static")
 app.config["MAX_CONTENT_LENGTH"] = 128 * 1024
+log = install(app, "phishlens")
 MODEL = PhishModel.train(seed=0)     # trained once at startup (synthetic feature data)
 
 
@@ -89,6 +91,7 @@ def analyze_batch():
 
 
 @app.route("/api/enrich", methods=["POST"])
+@rate_limited(10)
 def enrich():
     d = _body()
     if d is None:
@@ -98,6 +101,7 @@ def enrich():
         return jsonify({"error": "confirm that you own or are authorized to check this domain"}), 400
     if not tools.valid_public_domain(domain):
         return jsonify({"error": "enter a valid public DNS name; IPs and local hosts are not accepted"}), 400
+    log.info("rid=%s authorized enrichment requested for %s", getattr(g, "rid", "-"), domain)
     return jsonify({
         "domain": domain,
         "whois": tools.whois_lookup(domain),
@@ -106,9 +110,31 @@ def enrich():
     })
 
 
+_METRICS = None
+
+
 @app.route("/api/metrics")
 def metrics():
-    return jsonify(MODEL.evaluate())
+    # The held-out evaluation is deterministic, so compute it once. Load testing
+    # showed ~240 ms per call when it was recomputed on every request.
+    global _METRICS
+    if _METRICS is None:
+        _METRICS = MODEL.evaluate()
+    return jsonify(_METRICS)
+
+
+_COMPARISON = None
+
+
+@app.route("/api/compare")
+@rate_limited(6)
+def model_comparison():
+    """Benchmark four classifiers on identical synthetic data (cached after first run)."""
+    global _COMPARISON
+    if _COMPARISON is None:
+        from phishlens.compare import compare
+        _COMPARISON = compare()
+    return jsonify(_COMPARISON)
 
 
 @app.route("/api/examples")

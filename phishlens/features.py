@@ -47,6 +47,45 @@ def _registered_domain(host: str) -> str:
     return ".".join(parts[-2:]) if len(parts) >= 2 else host
 
 
+_HOMOGLYPHS = str.maketrans({"0": "o", "1": "l", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a"})
+
+
+def _edit_distance_one(a: str, b: str) -> bool:
+    """True when a and b differ by exactly one insert, delete or substitution."""
+    if a == b or abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) == len(b):
+        return sum(x != y for x, y in zip(a, b)) == 1
+    short, long_ = (a, b) if len(a) < len(b) else (b, a)
+    return any(long_[:i] + long_[i + 1:] == short for i in range(len(long_)))
+
+
+def squatting(registered: str) -> Dict[str, List[str]]:
+    """Brand-squatting checks on the registered domain (e.g. 'paypa1-login.com').
+
+    * typosquat: a label is a brand after undoing digit look-alikes (paypa1,
+      amaz0n) or is one edit away from a brand of 6+ letters (linkedln).
+    * combosquat: the label joins a brand with other words using hyphens
+      (hdfc-netbanking-kyc-update), the pattern studied by Kintis et al. (2017).
+    The brand's own domain (label exactly equal to the brand) never matches.
+    """
+    label = registered.rsplit(".", 1)[0] if "." in registered else registered
+    typo, combo = set(), set()
+    if label in BRANDS:
+        return {"typosquat": [], "combosquat": []}
+    parts = label.split("-")
+    for part in parts:
+        norm = part.translate(_HOMOGLYPHS)
+        for brand in BRANDS:
+            if norm == brand and part != brand:
+                typo.add(brand)
+            elif len(brand) >= 6 and _edit_distance_one(norm, brand):
+                typo.add(brand)
+            if len(parts) > 1 and (norm == brand or (len(brand) >= 5 and norm.startswith(brand))):
+                combo.add(brand)
+    return {"typosquat": sorted(typo), "combosquat": sorted(combo)}
+
+
 def extract(url: str) -> Dict:
     """Return a dict with the numeric feature vector plus human-readable signals."""
     url = url.strip()
@@ -70,6 +109,8 @@ def extract(url: str) -> Dict:
     # Brand lookalike: a known brand appears somewhere but is NOT the registered domain.
     brand_hits = [b for b in sorted(BRANDS) if b in host or b in path_q.lower()]
     lookalike = 1 if any(b not in reg for b in brand_hits) and brand_hits else 0
+    host_brand_hits = [b for b in brand_hits if b in host and b not in reg]
+    squat = squatting(reg)
 
     vec = {
         "url_length": len(url),
@@ -93,8 +134,14 @@ def extract(url: str) -> Dict:
     signals = []
     if has_ip:
         signals.append(("IP address used as hostname", "high"))
-    if lookalike:
-        signals.append(("brand name on a non-matching domain (%s)" % ", ".join(brand_hits), "high"))
+    if host_brand_hits:
+        signals.append(("brand name on a non-matching domain (%s)" % ", ".join(host_brand_hits), "high"))
+    elif lookalike:
+        signals.append(("brand name only in the path (%s)" % ", ".join(brand_hits), "medium"))
+    if squat["typosquat"]:
+        signals.append(("typosquat of %s in the registered domain" % ", ".join(squat["typosquat"]), "high"))
+    if squat["combosquat"]:
+        signals.append(("brand combined with other words in the domain (%s)" % ", ".join(squat["combosquat"]), "high"))
     if tld_bad:
         signals.append(("suspicious TLD .%s" % tld, "medium"))
     if "@" in url:

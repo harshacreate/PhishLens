@@ -86,3 +86,52 @@ def test_domain_guard_rejects_local_and_ip_targets():
     assert not tools.valid_public_domain("localhost")
     assert not tools.valid_public_domain("127.0.0.1")
     assert not tools.valid_public_domain("-bad.example.com")
+
+
+def test_model_comparison_reports_every_candidate():
+    from phishlens.compare import CANDIDATES, compare
+    report = compare()
+    assert [r["model"] for r in report["results"]] == list(CANDIDATES)
+    for row in report["results"]:
+        c = row["confusion"]
+        assert c["tn"] + c["fp"] + c["fn"] + c["tp"] == report["n_test"]
+        assert row["roc_auc"] >= 0.9
+
+
+def test_squatting_signals():
+    from phishlens.features import squatting
+    assert squatting("paypa1-secure-login.com")["typosquat"] == ["paypal"]
+    assert squatting("linkedln.com")["typosquat"] == ["linkedin"]
+    assert "hdfc" in squatting("hdfc-netbanking-kyc-update.in")["combosquat"]
+    for own in ("paypal.com", "linkedin.com", "hdfcbank.com", "microsoftonline.com"):
+        assert squatting(own) == {"typosquat": [], "combosquat": []}
+
+
+def test_hybrid_floor_catches_punycode_but_not_path_mentions():
+    m = PhishModel.train()
+    homograph = m.score_url("http://xn--pypal-4ve.com/signin")
+    assert homograph["model_risk"] < 40 and homograph["risk"] >= 70 and homograph["floor_applied"]
+    article = m.score_url("https://en.wikipedia.org/wiki/PayPal")
+    assert article["risk"] < 40 and not article["floor_applied"]
+
+
+def test_holdout_probes_hybrid_beats_model_only():
+    from phishlens.probes import evaluate
+    report = evaluate()["holdout"]
+    assert report["hybrid"]["recall"] > report["model_only"]["recall"]
+    assert report["hybrid"]["fp"] == 0
+
+
+def test_tls_check_refuses_names_that_resolve_to_internal_addresses(monkeypatch):
+    import socket
+    def fake_getaddrinfo(host, *args, **kwargs):
+        table = {"rebind.example": "127.0.0.1", "metadata.example": "169.254.169.254",
+                 "intranet.example": "10.1.2.3", "public.example": "93.184.216.34"}
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (table[host], 0))]
+    monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
+    for host in ("rebind.example", "metadata.example", "intranet.example"):
+        assert tools.resolve_public(host) is None
+        if tools.available("openssl"):
+            result = tools.tls_cert(host)
+            assert result["reachable"] is False and "refused" in result["error"]
+    assert tools.resolve_public("public.example") == "93.184.216.34"

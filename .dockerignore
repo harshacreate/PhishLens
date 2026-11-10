@@ -4,3 +4,7 @@
 __pycache__
 *.py[cod]
 docs/*.png
+report/
+docs/
+scripts/
+.env

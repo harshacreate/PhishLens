@@ -19,6 +19,9 @@ from phishlens.dataset import make_dataset
 from phishlens.features import FEATURE_NAMES, extract, vector_list
 
 
+HIGH_SIGNAL_FLOOR = 75.0
+
+
 @dataclass
 class PhishModel:
     scaler: StandardScaler
@@ -45,10 +48,19 @@ class PhishModel:
             "contribution": round(float(contrib[i]), 3),
             "direction": "raises" if contrib[i] > 0 else "lowers",
         } for i in order[:6] if abs(contrib[i]) > 0.01]
-        verdict = "Phishing" if proba >= 0.7 else ("Suspicious" if proba >= 0.4 else "Likely safe")
+        model_risk = round(proba * 100, 1)
+        # Hybrid scoring: a high-severity rule signal (IP host, punycode, '@'
+        # trick, brand on a foreign domain, typosquat, combosquat) is strong
+        # evidence on its own, so it sets a floor under the learned score. The
+        # out-of-template probes in probes.py showed the model alone missing
+        # these whenever the rest of the URL looked ordinary.
+        high = [t for t, sev in feat["signals"] if sev == "high"]
+        risk = max(model_risk, HIGH_SIGNAL_FLOOR) if high else model_risk
+        verdict = "Phishing" if risk >= 70 else ("Suspicious" if risk >= 40 else "Likely safe")
         return {
             "url": url, "host": feat["host"], "registered_domain": feat["registered_domain"],
-            "risk": round(proba * 100, 1), "verdict": verdict,
+            "risk": risk, "model_risk": model_risk, "verdict": verdict,
+            "floor_applied": bool(high) and risk > model_risk,
             "signals": [{"text": t, "severity": s} for t, s in feat["signals"]],
             "drivers": drivers,
             "features": feat["vector"],
