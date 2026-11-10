@@ -1,94 +1,139 @@
 # PhishLens
 
-**Read the signal in a link before a person clicks it.**
+**Explainable hybrid phishing-URL detection, with an honest out-of-template evaluation.**
 
+Design Project II · Semester IV (2024–25) · B.Tech, specialisation in Cyber Security, DISC, Hindustan Institute of Technology and Science, Chennai · by **Malepati Sree Harsha**
 
-PhishLens parses one URL, a pasted email, or a small batch; surfaces rule signals and feature contributions; then assigns a score using an explainable logistic-regression model trained on generated URL features. It runs offline by default. Optional WHOIS, DNS, and TLS checks require an explicit confirmation that the user owns or is authorized to check the selected public domain.
+![tests](https://img.shields.io/badge/tests-18%20passing-2ea44f) ![python](https://img.shields.io/badge/python-3.12-3776AB) ![docker](https://img.shields.io/badge/docker-compose-2496ED) ![license](https://img.shields.io/badge/license-MIT-blue) ![focus](https://img.shields.io/badge/focus-explainable%20ML-0f8f8a)
 
-## Problem / why it matters
+![PhishLens verdict](docs/screenshots/02-phishing-verdict.png)
 
-Security awareness tools can output a single “safe” or “dangerous” label without showing their reasoning. PhishLens exposes the URL traits and model features that influenced its score, making it possible to challenge the decision instead of treating it as proof.
+PhishLens scores a URL, a pasted e-mail or a batch of links, and shows exactly which signals and features drove the score. It never opens the links it analyses. The project also asks the harder question: **does it work on attack styles it was never trained on?** On a pre-registered hold-out set, the model alone caught 1 in 10. A transparent hybrid caught 9 in 10 with no false alarms.
 
-## What I built
+## Key results (measured)
 
-- URL and email-body extraction, with checks for IP hosts, punycode, `@` tricks, lookalike brand strings, suspicious TLDs, redirects, URL shorteners, and credential/urgency language.
-- A seeded synthetic feature-data generator and a standardized logistic-regression classifier. The same feature extractor is used for training and scoring.
-- Single and batch analysis, a risk gauge, visible signal list, feature-driver chart, held-out metrics, printable report, and JSON export.
-- Optional passive domain enrichment with `whois`, `dig` availability reporting, `dnspython` records (A/MX/SPF/DMARC), and the OpenSSL command for TLS certificate details.
-- A clear opt-in checkbox and backend authorization flag; private IPs, IP literals, and local hostnames are rejected for enrichment.
-
-### Architecture
-
-```mermaid
-flowchart LR
-  UI[HTML / CSS / JavaScript] -->|offline input| API[Flask API]
-  API --> Features[URL feature extraction]
-  Generator[Seeded synthetic feature generator] --> Model[Logistic regression]
-  Features --> Model
-  Model --> Explain[Score, signals, feature contributions]
-  UI -->|only after ownership confirmation| Enrich[Passive enrichment endpoint]
-  Enrich --> WHOIS[whois CLI]
-  Enrich --> DNS[dnspython / local resolver]
-  Enrich --> SSL[OpenSSL s_client + x509]
-```
-
-## Tools used
-
-| Tool | Use |
+| Result | Value |
 |---|---|
-| Python / Flask | Local analyzer API |
-| scikit-learn | Interpretable logistic-regression model |
-| `whois` | Optional registration date and registrar lookup |
-| `dig` / dnspython | DNS and email-policy records; queries run only on opt-in |
-| OpenSSL | Optional TLS handshake and certificate metadata |
+| In-distribution F1, four models (synthetic, 2,400 URLs) | **0.962 – 0.970** (tie at the 3% label-noise ceiling) |
+| Hold-out recall on out-of-template phishing, **model only** | **1 / 10** (shortcut learning) |
+| Hold-out recall, **hybrid** (typosquat + combosquat signals, risk floor) | **9 / 10**, false positives **0 / 12** |
+| Security fix | SSRF in TLS enrichment found and fixed (resolve once, refuse non-global IPs, connect to the vetted IP) |
+| Automated tests | **18 / 18 passing** |
+| Single-URL analysis under load | p50 5.3 ms · 1,391 req/s; `/api/metrics` cut from 240 ms to 3.8 ms by caching |
 
-The enrichment path is passive. It does not crawl, submit forms to, or attack a supplied site. The link text itself is never opened by PhishLens.
+| Model | F1 | ROC-AUC | 5-fold AUC |
+|---|---|---|---|
+| Logistic Regression | 0.970 | 0.968 | 0.970 ± 0.007 |
+| Decision Tree | 0.969 | 0.966 | 0.963 ± 0.008 |
+| Random Forest | 0.962 | 0.964 | 0.973 ± 0.008 |
+| Gaussian Naive Bayes | 0.970 | 0.969 | 0.970 ± 0.005 |
 
-## Run it
+![Out-of-template recall](docs/diagrams/chart-probes.png)
 
-### Docker
+The hold-out probe set (10 phishing, 12 benign) was written *before* the hybrid was designed and never used for tuning. It is small, so treat the result as indicative. All data are synthetic or illustrative; no claim is made about real-world detection rates.
+
+## Features
+
+- **16 interpretable URL features** and human-readable rule signals (IP host, punycode, `@` trick, suspicious TLD, shortener, redirect, brand look-alike, keywords …).
+- **Exact explanations:** logistic regression; each feature's contribution = coefficient × standardised value.
+- **Typosquat and combosquat detection** (`paypa1`, `linkedln`, `hdfc-netbanking-kyc-update`).
+- **Hybrid scoring:** a high-severity signal sets a risk floor of 75; the model's own score is always shown alongside.
+- **E-mail cues:** urgency, credential/payment requests, generic greetings.
+- **Batch mode** (≤ 25 URLs), JSON export, print view.
+- **Model study:** logistic regression vs decision tree vs random forest vs naive Bayes, confusion matrices, 5-fold CV.
+- **Opt-in passive enrichment:** WHOIS, A/MX/SPF/DMARC and TLS certificate, only for domains you confirm you are authorized to check.
+
+## Architecture
+
+![Architecture](docs/diagrams/architecture.png)
+
+## Quick start
 
 ```bash
 docker compose up --build -d
 open http://localhost:8102
-docker compose down
 ```
-
-The published app port is loopback-bound. On macOS, double-click `Start.command` to start Docker, wait for health, and open the analyzer.
-
-### Local Python
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 python -m pip install -r requirements.txt
-make test
-make evaluate
-make run
+make test       # 18 tests
+make evaluate   # held-out metrics
+make compare    # four-model study
+make probes     # out-of-template evaluation (dev + hold-out)
+make run        # http://127.0.0.1:8000
 ```
 
-Open `http://127.0.0.1:8000`. `make evaluate` prints held-out metrics from a fixed, independent generator seed.
+## Security
 
-## Results / evaluation
+The analysed URL is never fetched. Enrichment requires an explicit authorization flag, accepts only public DNS names, and refuses names that resolve to loopback, private or metadata addresses (SSRF). It also has an audit log and a rate limit. Strict CSP, OWASP headers, no-store API responses and body-free logs apply throughout. See [SECURITY.md](SECURITY.md).
 
-The model card in the UI and `make evaluate` report ROC-AUC, precision, recall, and F1 on generated feature examples. These are **synthetic-only** results. They measure separation between patterns in this generator, not accuracy on real phishing mail, new campaigns, browser telemetry, or a production corpus. Batch results are capped at 25 entries.
+## Documentation
 
-## What I learned / design decisions
+| Document | |
+|---|---|
+| [Project report (PDF)](report/PhishLens_Project_Report.pdf) · [Word](report/PhishLens_Project_Report.docx) | IEEE-style report: literature survey, SRS, UML/DFD, implementation, testing, results, references |
+| [Presentation (PowerPoint)](report/PhishLens_Presentation.pptx) · [PDF](report/PhishLens_Presentation.pdf) | Review / viva slides with speaker notes |
+| [Synopsis](report/PhishLens_Synopsis.pdf) | Two-page project synopsis |
+| [Demo script](report/Demo_Script.md) | Timed live-demonstration walkthrough |
+| [Viva questions](report/Viva_Questions.md) | Likely examiner / interviewer questions with answers |
+| [Portfolio copy](report/Portfolio_Copy.md) | GitHub description, LinkedIn and resume text |
+| [Showcase page](docs/index.html) | Landing page for GitHub Pages (Settings → Pages → `main` / `docs`) |
+| [Security policy](SECURITY.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) | Threat model, disclosure process, workflow, history |
 
-- A model should explain its score in feature terms, even when the model itself is simple.
-- Fixed seeds are not enough if a generator iterates over unordered sets; the dataset now sorts categorical choices before sampling.
-- Synthetic evaluation can still reward generator shortcuts. A separate public corpus and domain-aware temporal holdout would be needed before any real-world claim.
-- Passive enrichment can disclose the checked domain to public infrastructure. It is therefore disabled until the user confirms authorization and is omitted from the offline path.
-- A missing DNS record or certificate detail is not itself proof of a phishing attempt.
+## Limitations and roadmap
 
-## Limitations & next steps
+- Synthetic training data; small probe sets. Next: a licensed corpus with a time-based split and confidence intervals.
+- The registered domain is approximated by the last two labels. Next: the Public Suffix List.
+- Brandless lures on free web hosting are still missed (1 hold-out miss).
+- Fixed brand list (20). Next: learn brands from certificate-transparency logs.
 
-The feature generator is narrow and hand-authored; phishing behavior changes quickly. Domain parsing uses lightweight heuristics and may not recognize every public-suffix edge case. WHOIS responses vary by registry, while DNS results depend on the configured resolver. The risk score is a triage hint, not a verdict or a browser blocking decision. Next steps would include validation against a licensed, dated public dataset, calibration checks, richer IDN handling, and independent review of consent and data retention.
+## Repository layout
 
-## Scope and safety
-
-The analyzer works offline on pasted text. It does not visit links. WHOIS, DNS, and TLS requests are disabled until a user confirms ownership or authorization for that domain; only public DNS names are accepted. No URL scanning or third-party attack is performed.
+```
+├── .dockerignore
+├── .env.example
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── .gitignore
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── Dockerfile
+├── LICENSE
+├── Makefile
+├── PROJECT_OVERVIEW.md
+├── README.md
+├── SECURITY.md
+├── Start.command
+├── docker-compose.yml
+├── docs/
+│   ├── README.md
+│   ├── diagrams/  (12 images)
+│   ├── index.html
+│   └── screenshots/  (7 images)
+├── phishlens/
+│   ├── __init__.py
+│   ├── app.py
+│   ├── compare.py
+│   ├── data/
+│   ├── dataset.py
+│   ├── evaluate.py
+│   ├── features.py
+│   ├── model.py
+│   ├── probes.py
+│   ├── static/
+│   │   └── index.html
+│   ├── tools.py
+│   └── web_security.py
+├── requirements.txt
+├── scripts/
+│   └── loadtest.py
+└── tests/
+    ├── test_phishlens.py
+    └── test_security.py
+```
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE).
+MIT, see [LICENSE](LICENSE).

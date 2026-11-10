@@ -1,6 +1,6 @@
 # PhishLens — project overview
 
-**Portfolio stage:** Year 2 · **Focus:** phishing signals and explainable triage
+**Course:** Design Project II · Semester IV · 2024–25 · **Author:** Malepati Sree Harsha · **Focus:** phishing signals and explainable triage
 
 ## Goal
 
