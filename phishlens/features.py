@@ -8,9 +8,17 @@ explain *why* something looks like phishing.
 from __future__ import annotations
 
 import math
+import ipaddress
 import re
 from typing import Dict, List, Tuple
 from urllib.parse import urlparse
+
+import tldextract
+
+TLD_EXTRACT = tldextract.TLDExtract(
+    suffix_list_urls=(),
+    include_psl_private_domains=True,
+)
 
 FEATURE_NAMES: List[str] = [
     "url_length", "host_length", "num_dots", "num_hyphens", "num_subdomains",
@@ -29,9 +37,6 @@ BRANDS = {"paypal", "apple", "microsoft", "google", "amazon", "facebook", "netfl
           "instagram", "bankofamerica", "chase", "wellsfargo", "hdfc", "sbi", "icici",
           "whatsapp", "linkedin", "dhl", "fedex", "coinbase", "binance"}
 
-_IP_RE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
-
-
 def _entropy(s: str) -> float:
     if not s:
         return 0.0
@@ -43,8 +48,15 @@ def _entropy(s: str) -> float:
 
 
 def _registered_domain(host: str) -> str:
-    parts = host.split(".")
-    return ".".join(parts[-2:]) if len(parts) >= 2 else host
+    host = (host or "").strip().strip("[]").rstrip(".").lower()
+    if not host:
+        return ""
+    try:
+        return str(ipaddress.ip_address(host))
+    except ValueError:
+        pass
+    result = TLD_EXTRACT(host)
+    return result.top_domain_under_public_suffix or host
 
 
 _HOMOGLYPHS = str.maketrans({"0": "o", "1": "l", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a"})
@@ -69,7 +81,9 @@ def squatting(registered: str) -> Dict[str, List[str]]:
       (hdfc-netbanking-kyc-update), the pattern studied by Kintis et al. (2017).
     The brand's own domain (label exactly equal to the brand) never matches.
     """
-    label = registered.rsplit(".", 1)[0] if "." in registered else registered
+    # A registered domain is one label plus its public suffix, which can have
+    # multiple labels (for example, brand.co.uk).
+    label = registered.split(".", 1)[0] if "." in registered else registered
     typo, combo = set(), set()
     if label in BRANDS:
         return {"typosquat": [], "combosquat": []}
@@ -91,15 +105,32 @@ def extract(url: str) -> Dict:
     url = url.strip()
     if "://" not in url:
         url = "http://" + url
-    p = urlparse(url)
-    host = (p.hostname or "").lower()
+    try:
+        p = urlparse(url)
+        host = (p.hostname or "").lower().rstrip(".")
+    except ValueError:
+        # urlparse accepts some malformed authorities but raises when hostname
+        # is accessed (for example, an unmatched IPv6 bracket). Keep scoring
+        # deterministic and fail closed with an empty host.
+        p = urlparse("")
+        host = ""
     path_q = (p.path or "") + ("?" + p.query if p.query else "")
-    reg = _registered_domain(host)
-    tld = host.rsplit(".", 1)[-1] if "." in host else ""
 
-    has_ip = 1 if _IP_RE.match(host) else 0
+    try:
+        ipaddress.ip_address(host)
+        has_ip = 1
+        reg = host
+        tld = ""
+        sub = 0
+    except ValueError:
+        has_ip = 0
+        psl = TLD_EXTRACT(host) if host else None
+        reg = (psl.top_domain_under_public_suffix or host) if psl else ""
+        tld = psl.suffix.rsplit(".", 1)[-1] if psl and psl.suffix else (
+            host.rsplit(".", 1)[-1] if "." in host else ""
+        )
+        sub = len(psl.subdomain.split(".")) if psl and psl.subdomain else 0
     punycode = 1 if "xn--" in host else 0
-    sub = max(0, host.count(".") - 1) if host else 0
     digits = sum(c.isdigit() for c in host)
     digit_ratio = round(digits / len(host), 3) if host else 0.0
     shortener = 1 if reg in SHORTENERS else 0
