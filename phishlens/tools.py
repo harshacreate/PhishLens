@@ -104,7 +104,7 @@ def dns_records(domain: str) -> Dict:
 def resolve_public(host: str):
     """Resolve host once and return one public IPv4 address, or None.
 
-    A public-looking *name* can still point at 127.0.0.1, a private range or a
+    A public-looking name can still point at 127.0.0.1, a private range or a
     cloud metadata address (and DNS rebinding can change the answer between two
     lookups). Refusing any non-global answer and then connecting to the vetted
     IP prevents the TLS check from being turned into a request to internal

@@ -5,11 +5,11 @@ well there only proves it learned the generator's templates. These probes are
 hand-written URLs built with tricks the generator never produces (typosquats,
 combosquats on ordinary TLDs, punycode on .com, real login pages of the brands).
 
-* ``DEV_PROBES`` were written first and used for error analysis; the typosquat /
-  combosquat signals and the hybrid floor were designed after looking at them,
-  so results on this set are optimistic by construction.
-* ``HOLDOUT_PROBES`` were written *before* that design work and never used for
-  tuning. They are the honest generalisation estimate.
+``DEV_PROBES`` were written first and used to study errors. The typosquat and
+combosquat checks and the hybrid floor were designed after looking at them, so
+results on this set may be too high. ``HOLDOUT_PROBES`` were written before that
+design work and were not used to tune the model. They give a fairer estimate
+with new examples.
 
 All URLs are illustrative strings for offline scoring; PhishLens never visits them.
 The phishing examples use made-up domains and documentation IP ranges.

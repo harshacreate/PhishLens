@@ -1,4 +1,4 @@
-"""PhishLens — Phishing URL & Email Analyzer (Flask backend)."""
+"""PhishLens link and email checker built with Flask."""
 
 from __future__ import annotations
 

@@ -2,7 +2,7 @@
 
 The SAME extractor is used to build the training set and to score live input, so
 there is no train/serve skew. Features are interpretable, which lets the model
-explain *why* something looks like phishing.
+explain why something looks like phishing.
 """
 
 from __future__ import annotations
