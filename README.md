@@ -6,7 +6,7 @@ The walkthrough scores an inert example URL locally; the app does not open it.
 
 PhishLens checks links and email text for signs of phishing. It explains which signs led to each score. It can also check a list of links at once. It does not open links during a normal check.
 
-Design Project II, Semester IV (2024–25), B.Tech Cyber Security, Hindustan Institute of Technology and Science. Project by Malepati Sree Harsha.
+Design Project II, Semester IV (2024 to 2025), B.Tech Cyber Security, Hindustan Institute of Technology and Science. Project by Malepati Sree Harsha.
 
 ![tests](https://img.shields.io/badge/tests-20%20passing-2ea44f) [![coverage](https://codecov.io/gh/harshacreate/PhishLens/branch/main/graph/badge.svg)](https://codecov.io/gh/harshacreate/PhishLens)
 
