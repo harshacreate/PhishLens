@@ -1,25 +1,31 @@
-# PhishLens — project overview
+# PhishLens project overview
 
-**Course:** Design Project II · Semester IV · 2024–25 · **Author:** Malepati Sree Harsha · **Focus:** phishing signals and explainable triage
+PhishLens checks links and email text for signs of phishing. It shows which signs led to each score.
 
-## Goal
+## What it does
 
-Inspect pasted links and email text offline, display the features behind a synthetic-data risk estimate, and let a user request passive domain enrichment only after confirming authorization.
+- Checks links without opening them.
+- Checks email text for common warning signs.
+- Checks a list of links at once.
+- Compares four scoring models.
+- Can look up public domain details if the user says they are allowed to check the domain.
 
-## Components
+## Main files
 
-- `phishlens/features.py` — URL parser, signal rules, and numeric feature vector.
-- `phishlens/dataset.py` — fixed-seed generator for synthetic benign/phishing-shaped URL features.
-- `phishlens/model.py` — standardized logistic regression, feature drivers, and held-out metrics.
-- `phishlens/tools.py` — time-bounded WHOIS, DNS, and OpenSSL adapters with public-domain validation.
-- `phishlens/app.py` — Flask endpoints for single, batch, metrics, and authorized enrichment.
-- `phishlens/static/index.html` — interactive dashboard with risk gauge, model card, batch results, and report export.
+- `phishlens/features.py` reads parts of a link used by the checks.
+- `phishlens/dataset.py` makes sample links for training and testing.
+- `phishlens/model.py` scores links and shows which parts affected the score.
+- `phishlens/tools.py` runs optional domain checks.
+- `phishlens/app.py` starts the web app.
+- `phishlens/static/index.html` has the web page.
 
-## Data and scope
+## Data and limits
 
-Training and evaluation samples are generated locally from deterministic templates; they are not an external phishing corpus. Offline analysis does not fetch URLs. Enrichment is optional, passive, and requires an authorization confirmation.
+The training links are made for this project. A separate test with public links is explained in [Real data notes](docs/REAL_DATA.md). It used a balanced sample and does not show how the app will work for every user.
 
-## Run and verify
+Normal checks do not visit links. Optional domain checks need the user approval and block local or private addresses.
+
+## Run it
 
 ```bash
 docker compose up --build -d
@@ -27,4 +33,4 @@ make test
 make evaluate
 ```
 
-Open `http://localhost:8102`. See the main README for assumptions and limitations.
+Open http://localhost:8102. See the README for more details.
