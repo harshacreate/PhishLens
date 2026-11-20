@@ -6,8 +6,8 @@ The model was trained only on made-up links, using seed 0. The two public data s
 
 | Check | Phishing links found | Safe links marked as phishing | Safe links left alone | Phishing links missed | Precision (95% range) | Recall (95% range) | F1 (95% range) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Model only | 13,300 | 194 | 32,948 | 19,842 | 0.986 (0.984–0.988) | 0.401 (0.396–0.407) | 0.570 (0.565–0.576) |
-| Model and extra rules | 13,786 | 257 | 32,885 | 19,356 | 0.982 (0.980–0.984) | 0.416 (0.411–0.421) | 0.584 (0.579–0.590) |
+| Model only | 13,300 | 194 | 32,948 | 19,842 | 0.986 (0.984 to 0.988) | 0.401 (0.396 to 0.407) | 0.570 (0.565 to 0.576) |
+| Model and extra rules | 13,786 | 257 | 32,885 | 19,356 | 0.982 (0.980 to 0.984) | 0.416 (0.411 to 0.421) | 0.584 (0.579 to 0.590) |
 
 Precision shows how often a phishing result was right. Recall shows how many phishing links were found. F1 is one score that combines both. The test used the same number of phishing and safe examples. This makes it possible to compare the two checks, but it does not match real use. Phishing links are much less common in real life, so the precision here does not show what it would be in real use.
 
