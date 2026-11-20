@@ -1,14 +1,14 @@
-# PhishLens — demonstration script (6 minutes)
+# PhishLens demo (6 minutes)
 
-**Setup:** `docker compose up --build -d`, open http://localhost:8102, confirm the four tool pills are green.
+**Before the demo:** Run `docker compose up --build -d`, open http://localhost:8102, and check that all four tool lights are green.
 
 | Time | Do | Say |
 |---|---|---|
-| 0:00 | Landing page | "PhishLens never opens the links it analyses. Everything here is offline scoring." |
-| 0:30 | Click a low-risk example | "Low risk. Note the feature drivers: each bar is coefficient × standardised value — the exact reason, not an approximation." |
-| 1:15 | Paste the suspended-account e-mail | "High risk. Signals: '@' trick, suspicious TLD, credential keywords; e-mail cues: urgency, generic greeting." |
-| 2:00 | Batch mode with the seven sample URLs | "Batch scoring with a summary." |
-| 2:30 | Model study → Run comparison | "Four models tie at ~97% F1. That's the ceiling from 3% label noise. When accuracy ties, explanation decides." |
-| 3:15 | Analyse `http://xn--pypal-4ve.com/signin` | "The model alone says 4/100. It learned shortcuts from its generator. On a hold-out set I fixed in advance it caught 1 of 10. Typosquat/combosquat signals plus a risk floor catch 9 of 10, with no false positives." |
-| 4:30 | Explain enrichment checkbox | "Network checks need explicit authorization. In review I found an SSRF: a name resolving to 127.0.0.1 would have been contacted. Now I resolve once, refuse non-public IPs and connect to the vetted IP." |
-| 5:30 | Close | "Lesson: measure generalisation, not just accuracy. Questions?" |
+| 0:00 | Show the home page | “PhishLens checks links as text. It never opens them. The score is made on this computer.” |
+| 0:30 | Check a low-risk link | “This link has low risk. Each bar shows how one part of the link changed the score. It uses the coefficient times the standardised value.” |
+| 1:15 | Paste the suspended-account email | “This looks risky. The link has an `@` trick, a suspicious domain ending, and login words. The email sounds urgent and starts with a general greeting.” |
+| 2:00 | Check the seven sample links at once | “I can check several links at once and see a summary.” |
+| 2:30 | Open **Model study** and run the comparison | “The four models have about the same F1 score: 97%. The sample data has 3% wrong labels by design, so about 97% is the best score this data allows. When the scores are close, it helps to see why each model made its choice.” |
+| 3:15 | Check `http://xn--pypal-4ve.com/signin` | “The model gives this link 4 out of 100. It learned shortcuts from its sample data. On 10 links I set aside, it caught 1. The extra checks for misspelled brand names and brand names joined to other words caught 9 of 10. They also had no false alerts.” |
+| 4:30 | Show the network-check option | “Network checks need permission. I found a risk: a public-looking name could point to 127.0.0.1, a private address. Now the app looks up the name once, stops if any address is not public, and connects to the checked IP. This helps stop an SSRF attack and DNS rebinding.” |
+| 5:30 | Close | “The main lesson is to test on links the model has not seen. Any questions?” |
