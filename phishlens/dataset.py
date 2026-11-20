@@ -1,8 +1,6 @@
-"""Synthetic URL generator -> labelled feature dataset for training.
-
-Benign and phishing URLs are generated from templates that mirror real-world
-patterns, then run through the SAME feature extractor used at serve time. This is
-synthetic training data for demonstrating the method, not a real phishing corpus.
+"""Make sample phishing and safe links for training and testing. The links come from templates
+and use the same code as the app to read their details. They are made up for this project.
+They are not a real list of phishing links.
 """
 
 from __future__ import annotations
@@ -60,7 +58,7 @@ def make_dataset(n: int = 2400, seed: int = 5) -> Tuple[np.ndarray, np.ndarray, 
         urls.append(_phish(rng)); labels.append(1)
     X = np.array([vector_list(extract(u)) for u in urls], dtype=float)
     y = np.array(labels, dtype=int)
-    # ~3% label noise so the task is realistically hard (no leaky perfect scores).
+    # Add a small amount of label noise so the model does not get perfect scores.
     flip = rng.sample(range(len(y)), max(1, int(0.03 * len(y))))
     for i in flip:
         y[i] = 1 - y[i]

@@ -1,4 +1,6 @@
-"""Print held-out metrics for the synthetic URL feature generator."""
+"""Print test scores for the sample link data. The script holds some examples back from
+training so it can measure how the model handles new examples.
+"""
 
 import json
 

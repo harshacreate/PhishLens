@@ -1,9 +1,6 @@
-"""Explainable phishing classifier (standardised logistic regression).
-
-Logistic regression is chosen for transparency: each feature's standardised
-coefficient times its value is that feature's contribution to the risk score, so
-the UI can show WHY a URL was flagged. The model trains in milliseconds and is
-built once at app startup.
+"""A small logistic regression model that can explain its score. Each link detail adds to or
+lowers the score, so the app can show why a link was flagged. The model is built when the
+app starts.
 """
 
 from __future__ import annotations
@@ -39,7 +36,7 @@ class PhishModel:
         x = np.array(vector_list(feat), dtype=float).reshape(1, -1)
         xs = self.scaler.transform(x)
         proba = float(self.clf.predict_proba(xs)[0, 1])
-        # Per-feature contribution to the log-odds (coef * standardised value).
+        # Show how each link detail adds to or lowers the model score.
         contrib = (self.clf.coef_[0] * xs[0])
         order = np.argsort(-np.abs(contrib))
         drivers = [{
@@ -49,11 +46,8 @@ class PhishModel:
             "direction": "raises" if contrib[i] > 0 else "lowers",
         } for i in order[:6] if abs(contrib[i]) > 0.01]
         model_risk = round(proba * 100, 1)
-        # Hybrid scoring: a high-severity rule signal (IP host, punycode, '@'
-        # trick, brand on a foreign domain, typosquat, combosquat) is strong
-        # evidence on its own, so it sets a floor under the learned score. The
-        # out-of-template probes in probes.py showed the model alone missing
-        # these whenever the rest of the URL looked ordinary.
+        # Strong warning signs set a minimum score. Earlier sample checks showed
+        # the model can miss them when the rest of a link looks normal.
         high = [t for t, sev in feat["signals"] if sev == "high"]
         risk = max(model_risk, HIGH_SIGNAL_FLOOR) if high else model_risk
         verdict = "Phishing" if risk >= 70 else ("Suspicious" if risk >= 40 else "Likely safe")

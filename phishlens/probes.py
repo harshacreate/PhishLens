@@ -1,20 +1,10 @@
-"""Out-of-template probe sets: does the model generalise beyond its generator?
-
-The classifier is trained and tested on URLs produced by ``dataset.py``. Scoring
-well there only proves it learned the generator's templates. These probes are
-hand-written URLs built with tricks the generator never produces (typosquats,
-combosquats on ordinary TLDs, punycode on .com, real login pages of the brands).
-
-``DEV_PROBES`` were written first and used to study errors. The typosquat and
-combosquat checks and the hybrid floor were designed after looking at them, so
-results on this set may be too high. ``HOLDOUT_PROBES`` were written before that
-design work and were not used to tune the model. They give a fairer estimate
-with new examples.
-
-All URLs are illustrative strings for offline scoring; PhishLens never visits them.
-The phishing examples use made-up domains and documentation IP ranges.
-
-Usage: ``python -m phishlens.probes`` (prints JSON).
+"""Check whether the model can handle links that do not follow its sample maker’s patterns. The
+model learns from links made by dataset.py. These extra examples use different patterns,
+such as misspelled brand names, extra words, punycode, and made-up brand login pages. The
+DEV_PROBES were used while making the extra checks, so their results may be too high. The
+HOLDOUT_PROBES were set aside first and were not used to tune the model. They give a fairer
+check on new examples. The links are text only. PhishLens does not open them. Run python -m
+phishlens.probes to print the results as JSON.
 """
 
 from __future__ import annotations
@@ -106,7 +96,7 @@ def _confusion(model, probes: List[Probe], key: str) -> Dict:
 
 
 def _wilson_interval(successes: int, trials: int, z: float = 1.959963984540054):
-    """Return a two-sided 95% Wilson score interval, including zero successes."""
+    """Return a two-sided 95 percent range using the Wilson score method, including when no examples were found."""
     if trials <= 0:
         return None
     proportion = successes / trials

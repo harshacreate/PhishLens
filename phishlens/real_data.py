@@ -1,9 +1,7 @@
-"""Offline evaluation against the pinned PhiLegit and Tranco snapshots.
-
-The evaluator never visits a URL. It scores URL strings with the frozen model
-trained on the repository's synthetic data, and reports a domain-disjoint,
-balanced case-control set. Raw downloads stay in the ignored data/real-data
-directory.
+"""Check the saved PhiLegit and Tranco public link lists without opening the links. The model
+stays the same and is trained only on this project’s made-up links. The test uses the same
+number of phishing and popular links, with no domain shared between groups. Downloaded data
+stays in the ignored data/real-data folder.
 """
 
 from __future__ import annotations

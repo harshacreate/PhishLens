@@ -1,9 +1,6 @@
-"""Compare candidate classifiers on the same synthetic URL features.
-
-Usage: ``python -m phishlens.compare`` (prints JSON). The production model stays
-logistic regression because each prediction can be decomposed into per-feature
-contributions; this script records what that transparency costs (or doesn't)
-against less interpretable models trained on identical data.
+"""Compare four models on the same sample link data. Run python -m phishlens.compare to print
+the results as JSON. The app uses logistic regression because it can show which link details
+changed a score. This script compares it with models that are harder to explain.
 """
 
 from __future__ import annotations

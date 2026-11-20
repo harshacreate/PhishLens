@@ -1,4 +1,4 @@
-"""PhishLens link and email checker built with Flask."""
+"""PhishLens checks links and email text with a local Flask app."""
 
 from __future__ import annotations
 
@@ -115,8 +115,7 @@ _METRICS = None
 
 @app.route("/api/metrics")
 def metrics():
-    # The held-out evaluation is deterministic, so compute it once. Load testing
-    # showed ~240 ms per call when it was recomputed on every request.
+    # This check gives the same result each time, so calculate it once.
     global _METRICS
     if _METRICS is None:
         _METRICS = MODEL.evaluate()
@@ -129,7 +128,10 @@ _COMPARISON = None
 @app.route("/api/compare")
 @rate_limited(6)
 def model_comparison():
-    """Benchmark four classifiers on identical synthetic data (cached after first run)."""
+    """Compare four models on the same sample links. The app uses logistic regression because it
+    can show which link details changed each score. This check compares it with three other
+    models.
+    """
     global _COMPARISON
     if _COMPARISON is None:
         from phishlens.compare import compare

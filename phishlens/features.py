@@ -1,8 +1,5 @@
-"""URL / email feature extraction for phishing detection.
-
-The SAME extractor is used to build the training set and to score live input, so
-there is no train/serve skew. Features are interpretable, which lets the model
-explain why something looks like phishing.
+"""Read parts of a link or email that may help find phishing. The same code reads the training
+examples and checks links in the app, so the results use the same rules.
 """
 
 from __future__ import annotations
@@ -63,7 +60,7 @@ _HOMOGLYPHS = str.maketrans({"0": "o", "1": "l", "3": "e", "4": "a", "5": "s", "
 
 
 def _edit_distance_one(a: str, b: str) -> bool:
-    """True when a and b differ by exactly one insert, delete or substitution."""
+    """Return True when one change can turn a into b. A change can add, remove, or replace one character."""
     if a == b or abs(len(a) - len(b)) > 1:
         return False
     if len(a) == len(b):
@@ -73,13 +70,10 @@ def _edit_distance_one(a: str, b: str) -> bool:
 
 
 def squatting(registered: str) -> Dict[str, List[str]]:
-    """Brand-squatting checks on the registered domain (e.g. 'paypa1-login.com').
-
-    * typosquat: a label is a brand after undoing digit look-alikes (paypa1,
-      amaz0n) or is one edit away from a brand of 6+ letters (linkedln).
-    * combosquat: the label joins a brand with other words using hyphens
-      (hdfc-netbanking-kyc-update), the pattern studied by Kintis et al. (2017).
-    The brand's own domain (label exactly equal to the brand) never matches.
+    """Check the registered site name for misspelled brand names or brand names joined to other
+    words. A typo may replace one character or use a number that looks like a letter. The
+    one-character typo check is used for brand names with at least six characters. The brand’s
+    own site name is not flagged.
     """
     # A registered domain is one label plus its public suffix, which can have
     # multiple labels (for example, brand.co.uk).
@@ -101,7 +95,7 @@ def squatting(registered: str) -> Dict[str, List[str]]:
 
 
 def extract(url: str) -> Dict:
-    """Return a dict with the numeric feature vector plus human-readable signals."""
+    """Return the numeric details about a link and plain text that explains the result."""
     url = url.strip()
     if "://" not in url:
         url = "http://" + url
@@ -198,7 +192,7 @@ def vector_list(feat: Dict) -> List[float]:
 
 
 def extract_urls(text: str) -> List[str]:
-    """Pull URLs out of a pasted email/body; fall back to the whole string."""
+    """Find links in the pasted message. If none are found, treat the whole text as one link."""
     urls = re.findall(r"https?://[^\s\"'<>)]+", text)
     if not urls:
         m = re.search(r"\b([a-z0-9.-]+\.[a-z]{2,})(/[^\s]*)?", text.lower())

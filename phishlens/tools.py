@@ -1,8 +1,7 @@
-"""Opt-in live enrichment tools: whois, DNS/SPF/DMARC, TLS certificate.
-
-These make PASSIVE lookups about the domain the user pasted (the same queries a
-browser/resolver makes). They are OFF by default in the UI; the analyzer works
-fully offline without them. Each degrades gracefully when the tool is missing.
+"""Optional tools for looking up public domain details, including WHOIS, DNS, email rules, and
+TLS certificates. They run only after the user confirms they own the domain or have
+permission to check it. The normal link check works offline. The app still works if a lookup
+tool is missing.
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ tool_available = available
 
 
 def valid_public_domain(domain: str) -> bool:
-    """Accept a public DNS name only; live lookups still require explicit user opt-in."""
+    """Accept a public domain name. The user must still choose to run live checks."""
     domain = (domain or "").strip().rstrip(".").lower()
     if len(domain) > 253 or "." not in domain or not re.fullmatch(r"[a-z0-9.-]+", domain):
         return False
@@ -102,13 +101,10 @@ def dns_records(domain: str) -> Dict:
 
 
 def resolve_public(host: str):
-    """Resolve host once and return one public IPv4 address, or None.
-
-    A public-looking name can still point at 127.0.0.1, a private range or a
-    cloud metadata address (and DNS rebinding can change the answer between two
-    lookups). Refusing any non-global answer and then connecting to the vetted
-    IP prevents the TLS check from being turned into a request to internal
-    services (SSRF).
+    """Look up a domain once and return one public IPv4 address, or None. A domain that looks
+    public may point to a private address. The DNS answer can also change between lookups. The
+    app rejects private addresses and connects to the address it checked. This helps stop
+    requests to private services, also called SSRF.
     """
     try:
         infos = socket.getaddrinfo(host, None, socket.AF_INET, socket.SOCK_STREAM)
@@ -124,7 +120,7 @@ def resolve_public(host: str):
 
 
 def tls_cert(host: str, port: int = 443) -> Dict:
-    """Use OpenSSL's client and x509 commands for a user-opted-in TLS check."""
+    """Use OpenSSL to check a domain’s TLS certificate after the user agrees."""
     if not valid_public_domain(host) or not available("openssl"):
         return {"available": False, "reachable": False}
     address = resolve_public(host)
