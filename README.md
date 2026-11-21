@@ -1,4 +1,4 @@
-# PhishLens
+PhishLens
 
 ![PhishLens demo](demo/phishlens-demo.gif)
 
@@ -8,11 +8,11 @@ PhishLens checks links and email text for signs of phishing. It explains which s
 
 Design Project II, Semester IV (2024 to 2025), B.Tech Cyber Security, Hindustan Institute of Technology and Science. Project by Malepati Sree Harsha.
 
-![tests](https://img.shields.io/badge/tests-20%20passing-2ea44f) [![coverage](https://codecov.io/gh/harshacreate/PhishLens/branch/main/graph/badge.svg)](https://codecov.io/gh/harshacreate/PhishLens)
+[![coverage](https://codecov.io/gh/harshacreate/PhishLens/branch/main/graph/badge.svg)](https://codecov.io/gh/harshacreate/PhishLens)
 
 ![PhishLens result](docs/screenshots/02-phishing-verdict.png)
 
-## Results
+Results
 
 The model was trained with links made for this project. I also checked it on a separate set of public links. That set had the same number of phishing and likely-safe links, so its precision score does not show how it will work for all users.
 
@@ -27,7 +27,7 @@ The model was trained with links made for this project. I also checked it on a s
 
 On a small hand-written test, the model alone found 1 of 10 phishing links. Extra checks for look-alike names raised this to 9 of 10, with no false alerts on 12 safe examples. This is a small test, not proof of how it will work on real links. See [Real data notes](docs/REAL_DATA.md) for test details.
 
-## What it does
+What it does
 
 - Checks parts of a link and explains the result.
 - Checks email text for common warning signs.
@@ -35,7 +35,7 @@ On a small hand-written test, the model alone found 1 of 10 phishing links. Extr
 - Compares four models.
 - Can look up public domain details if the user says they are allowed to check the domain.
 
-## Run it
+Run it
 
 After a version tag has been published to GHCR:
 
@@ -61,7 +61,7 @@ make evaluate
 make run
 ```
 
-## Limits and safety
+Limits and safety
 
 The training links are made for this project, so the model may miss real phishing links. The public-link test used a balanced sample and does not show how the app will work for everyone. The app does not open links during a normal check. Optional domain checks need user approval and block local or private addresses.
 

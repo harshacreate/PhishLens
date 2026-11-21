@@ -1,15 +1,15 @@
-# Security
+Security
 
 PhishLens is a learning project for Design Project II, Semester IV of B.Tech Cyber Security. It runs on your computer and uses local data. Do not use it on a public network.
 
-## Supported versions
+Supported versions
 
 | Version | Supported |
 |---|---|
 | 1.1.x (main) | Yes |
 | Earlier versions | No |
 
-## Report a security issue
+Report a security issue
 
 Do not report a security issue in a public issue. Open GitHub's Security tab and choose Report a vulnerability. Include the version or commit, steps to repeat the problem, and what happened.
 
@@ -17,7 +17,7 @@ I aim to reply within 7 days. If I confirm the issue, I aim to share a fix or pl
 
 You may test your own copy on your computer. Do not test a system or account unless you own it or have permission.
 
-## What this app checks
+What this app checks
 
 PhishLens checks links and email text that you paste. If you choose, it can also look up details about public domains. Your browser and the Flask app run on the same computer. There are no user accounts. Do not open the app to a network.
 
@@ -30,7 +30,7 @@ PhishLens checks links and email text that you paste. If you choose, it can also
 | Too many requests at once | Limits are 128 KB per request, 20,000 characters per input, and 25 links per batch. Lookups and model comparisons also have limits. |
 | Link text runs a script | The page escapes link text before showing it and uses a same-origin Content Security Policy. |
 
-## How the app stays safer
+How the app stays safer
 
 - Each API route checks the input type, size, and allowed range. Errors use JSON.
 - Each reply has security headers. API replies use Cache-Control: no-store so the browser does not save them.
@@ -39,6 +39,6 @@ PhishLens checks links and email text that you paste. If you choose, it can also
 - Program calls use fixed arguments, do not use a shell, and have time limits.
 - The Docker app does not run as the root user. CI runs the tests after each push.
 
-## Limits
+Limits
 
 This project has not had an outside security review. It has no sign in because it is for one person on one computer. See the README for other limits.

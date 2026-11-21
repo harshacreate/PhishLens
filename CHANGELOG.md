@@ -1,16 +1,16 @@
-# Change log
+Change log
 
 This page lists the main changes to PhishLens.
 
-## [1.1.0] - Not released yet
+Version 1.1.0: Not released yet
 
 This version is ready for review. Add its release tag after review and merge.
 
-### Security
+Security
 
 - Fixed a server side request forgery (SSRF) bug in the TLS check. Before, a domain that looked public could point to a private or system address, and the app might connect to it. The app now looks up the address once, refuses any address that is not public, and makes the TLS connection to the checked address. Code: tools.resolve_public. Test: test_tls_check_refuses_names_that_resolve_to_internal_addresses.
 
-### Added and changed
+Added and changed
 
 - Added test links with patterns that were not in the training data in phishlens/probes.py and make probes. The added checks look for misspelled brand names, extra words added to brand names, and strong warning signs. In the saved test, the model alone found 1 of 10 phishing links. The model with the extra checks found 9 of 10 and marked none of 12 safe test links as phishing.
 - Saved the /api/metrics result. A load test showed that each call took 240 ms. It now takes about 4 ms.
@@ -23,8 +23,8 @@ This version is ready for review. Add its release tag after review and merge.
 - Added a repeatable test with public data from PhiLegit-100K v1 and Tranco 947N2. It removes repeated domains, lists removed rows, checks file hashes, and shows result ranges from grouped samples.
 - Added result ranges for the made-up link tests. These results stay separate from the public data results.
 
-## [1.0.0] - 2026-11-10
+Version 1.0.0: 2026-11-10
 
-### Added
+Added
 
 - First full release. It includes a Flask API, a dashboard, links to outside tools, a Docker image and Compose file, tests, and GitHub Actions checks.

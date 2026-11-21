@@ -1,4 +1,4 @@
-# PhishLens interview questions
+PhishLens interview questions
 
 1. Why use logistic regression instead of a random forest?
 

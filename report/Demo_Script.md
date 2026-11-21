@@ -1,4 +1,4 @@
-# PhishLens demo (6 minutes)
+PhishLens demo (6 minutes)
 
 Before the demo, run `docker compose up --build -d`, open http://localhost:8102, and check that all four tool lights are green.
 
