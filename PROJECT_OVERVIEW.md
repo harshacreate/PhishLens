@@ -4,20 +4,29 @@ PhishLens checks links and email text for signs of phishing. It shows which sign
 
 What it does
 
-- Checks links without opening them.
-- Checks email text for common warning signs.
-- Checks a list of links at once.
-- Compares four scoring models.
-- Can look up public domain details if the user says they are allowed to check the domain.
+Checks links without opening them.
+
+Checks email text for common warning signs.
+
+Checks a list of links at once.
+
+Compares four scoring models.
+
+Can look up public domain details if the user says they are allowed to check the domain.
 
 Main files
 
-- `phishlens/features.py` reads parts of a link used by the checks.
-- `phishlens/dataset.py` makes sample links for training and testing.
-- `phishlens/model.py` scores links and shows which parts affected the score.
-- `phishlens/tools.py` runs optional domain checks.
-- `phishlens/app.py` starts the web app.
-- `phishlens/static/index.html` has the web page.
+`phishlens/features.py` reads parts of a link used by the checks.
+
+`phishlens/dataset.py` makes sample links for training and testing.
+
+`phishlens/model.py` scores links and shows which parts affected the score.
+
+`phishlens/tools.py` runs optional domain checks.
+
+`phishlens/app.py` starts the web app.
+
+`phishlens/static/index.html` has the web page.
 
 Data and limits
 

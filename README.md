@@ -16,24 +16,31 @@ Results
 
 The model was trained with links made for this project. I also checked it on a separate set of public links. That set had the same number of phishing and likely-safe links, so its precision score does not show how it will work for all users.
 
-| Check | Result |
-|---|---:|
-| Model precision | 0.986 |
-| Model recall | 0.401 |
-| Model F1 score | 0.570 |
-| Hybrid precision | 0.982 |
-| Hybrid recall | 0.416 |
-| Hybrid F1 score | 0.584 |
+Model precision: 0.986
+
+Model recall: 0.401
+
+Model F1 score: 0.570
+
+Hybrid precision: 0.982
+
+Hybrid recall: 0.416
+
+Hybrid F1 score: 0.584
 
 On a small hand-written test, the model alone found 1 of 10 phishing links. Extra checks for look-alike names raised this to 9 of 10, with no false alerts on 12 safe examples. This is a small test, not proof of how it will work on real links. See [Real data notes](docs/REAL_DATA.md) for test details.
 
 What it does
 
-- Checks parts of a link and explains the result.
-- Checks email text for common warning signs.
-- Checks up to 25 links at once and can save a report.
-- Compares four models.
-- Can look up public domain details if the user says they are allowed to check the domain.
+Checks parts of a link and explains the result.
+
+Checks email text for common warning signs.
+
+Checks up to 25 links at once and can save a report.
+
+Compares four models.
+
+Can look up public domain details if the user says they are allowed to check the domain.
 
 Run it
 
@@ -68,4 +75,3 @@ The training links are made for this project, so the model may miss real phishin
 See [Security notes](SECURITY.md) and the [project report](report/PhishLens_Project_Report.pdf).
 
 The code is under the MIT license.
-

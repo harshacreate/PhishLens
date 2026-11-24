@@ -12,8 +12,10 @@ The link model uses sample data. On a small test with 10 phishing links, it foun
 
 Resume notes
 
-- Made a link and email checker that explains the signs behind each result.
-- Tested it on sample links and a separate set of public links.
-- Added optional checks for public domain details.
+Made a link and email checker that explains the signs behind each result.
+
+Tested it on sample links and a separate set of public links.
+
+Added optional checks for public domain details.
 
 See the main README and Real data notes for the full results and limits.
